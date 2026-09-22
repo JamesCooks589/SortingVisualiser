@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorting Visualizer — James Cooks</title>
+<style>
+  :root{
+    --bg:#12151b;
+    --panel:#1a1f27;
+    --panel-2:#20262f;
+    --border:#2a313c;
+    --text:#e7eaee;
+    --text-dim:#8b94a3;
+    --bar:#3d4a5c;
+    --compare:#e8a33d;
+    --swap:#e85d4a;
+    --sorted:#4fbf8b;
+    --pivot:#8b7ce8;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:32px 20px 48px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+  header{margin-bottom:28px;}
+  h1{
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:13px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:16px;
+    align-items:flex-end;
+  }
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-dim);
+    font-family:var(--mono);
+  }
+  select, input[type=range]{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:8px 10px;
+    font-family:var(--sans);
+    font-size:13px;
+  }
+  select{min-width:170px; cursor:pointer;}
+  input[type=range]{width:130px; padding:0; accent-color:var(--sorted);}
+  button{
+    background:var(--sorted);
+    color:#0d1712;
+    border:none;
+    border-radius:6px;
+    padding:9px 18px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:opacity 0.15s;
+  }
+  button:hover{opacity:0.85;}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  button.secondary{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--border);
+  }
+  .stage{
+    height:340px;
+    display:flex;
+    align-items:flex-end;
+    gap:3px;
+    padding:16px;
+  }
+  .bar{
+    flex:1;
+    background:var(--bar);
+    border-radius:3px 3px 0 0;
+    transition:background 0.08s;
+    position:relative;
+  }
+  .bar.compare{background:var(--compare);}
+  .bar.swap{background:var(--swap);}
+  .bar.sorted{background:var(--sorted);}
+  .bar.pivot{background:var(--pivot);}
+  .stats{
+    display:flex;
+    gap:28px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text-dim);
+    flex-wrap:wrap;
+  }
+  .stats b{color:var(--text); font-weight:600;}
+  .legend{
+    display:flex;
+    gap:18px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    flex-wrap:wrap;
+  }
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
+  footer{
+    margin-top:24px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    text-align:center;
+  }
+  footer a{color:var(--text-dim);}
+  @media (max-width:600px){
+    .controls{gap:12px;}
+    select, input[type=range]{min-width:0; width:100%;}
+    .field{width:calc(50% - 6px);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Sorting algorithm visualizer</h1>
+    <div class="sub">// vanilla JS, no dependencies</div>
+  </header>
+
+  <div class="panel">
+    <div class="controls">
+      <div class="field">
+        <label for="algo">Algorithm</label>
+        <select id="algo">
+          <option value="bubble">Bubble sort</option>
+          <option value="selection">Selection sort</option>
+          <option value="insertion">Insertion sort</option>
+          <option value="merge">Merge sort</option>
+          <option value="quick" selected>Quick sort</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="size">Array size — <span id="sizeVal">60</span></label>
+        <input type="range" id="size" min="10" max="150" value="60">
+      </div>
+      <div class="field">
+        <label for="speed">Speed — <span id="speedVal">5</span></label>
+        <input type="range" id="speed" min="1" max="10" value="5">
+      </div>
+      <button id="shuffleBtn" class="secondary">New array</button>
+      <button id="sortBtn">Sort</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <div class="panel">
+    <div class="stats">
+      <div>Comparisons: <b id="comparisons">0</b></div>
+      <div>Swaps: <b id="swaps">0</b></div>
+      <div>Array accesses: <b id="accesses">0</b></div>
+      <div>Time: <b id="time">0.0s</b></div>
+    </div>
+    <div class="legend" style="margin-top:14px;">
+      <span><span class="dot" style="background:var(--bar)"></span>unsorted</span>
+      <span><span class="dot" style="background:var(--compare)"></span>comparing</span>
+      <span><span class="dot" style="background:var(--swap)"></span>swapping</span>
+      <span><span class="dot" style="background:var(--pivot)"></span>pivot</span>
+      <span><span class="dot" style="background:var(--sorted)"></span>sorted</span>
+    </div>
+  </div>
+
+  <footer>James Cooks · <a href="https://github.com/JamesCooks589" target="_blank" rel="noopener">github.com/JamesCooks589</a></footer>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
